@@ -97,7 +97,7 @@ Here’s the complete content for the `Answer` class, `Poll` entity updates, `Ap
 # Answer Entity Class
 
 The `Answer` class represents the entity for answers in the application. It includes properties for the answer's content, its relationship with a question, and its active status. Below is the breakdown of the class and its properties:
-
+```
 ```csharp
 public sealed class Answer
 {
