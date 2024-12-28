@@ -256,6 +256,102 @@ public class QuestionConfiguration : IEntityTypeConfiguration<Question>
 - A migration has been added and applied to update the database schema.
 
 
+Here’s the complete content for the migration process, including the issue with cascade delete, the solution to restrict delete behavior globally, and the steps to add and update the migration, organized in a single block :
+
+
+# Migration Process and Cascade Delete Issue
+
+### Adding Migration
+To create a new migration for adding the `Questions` and `Answers` tables, run the following command in the Package Manager Console:
+
+```bash
+add-migration AddQuestionsAndAnswersTables
+```
+
+### Updating Database
+After adding the migration, attempt to update the database:
+
+```bash
+update-database
+```
+
+---
+
+### Cascade Delete Issue
+When updating the database, you may encounter an issue due to the **cascade delete** behavior between the `Poll` and `Questions` entities. This creates a cycle or multiple cascade paths, leading to an infinite loop:
+- Deleting a `Poll` will delete its associated `Questions`.
+- Deleting a `Question` will attempt to delete its associated `Poll`.
+
+This behavior is risky and undesirable for data integrity.
+
+---
+
+### Solutions to Cascade Delete Issue
+There are two possible solutions:
+1. **Local Solution**:  
+   Modify the `OnDelete` behavior to `Restrict` in the configuration class for each entity.  
+2. **Global Solution**:  
+   Apply a global configuration in the `ApplicationDbContext` to set `OnDelete` behavior to `Restrict` for all foreign keys.
+
+We will implement the **global solution** for consistency and efficiency.
+
+---
+
+### Implementing Global Restrict Behavior
+To prevent cascade delete globally, modify the `OnModelCreating` method in the `ApplicationDbContext`:
+
+```csharp
+protected override void OnModelCreating(ModelBuilder modelBuilder)
+{
+    // Apply all configurations from the assembly
+    modelBuilder.ApplyConfigurationsFromAssembly(Assembly.GetExecutingAssembly());
+
+    // Get all foreign keys in the database with cascade delete behavior
+    var cascadeFKs = modelBuilder.Model.GetEntityTypes()
+        .SelectMany(t => t.GetForeignKeys()) // All foreign keys in the database
+        .Where(fk => fk.DeleteBehavior == DeleteBehavior.Cascade && !fk.IsOwnership); // Exclude ownership relationships
+
+    // Change the delete behavior to Restrict for each foreign key
+    foreach (var fk in cascadeFKs)
+    {
+        fk.DeleteBehavior = DeleteBehavior.Restrict;
+    }
+
+    base.OnModelCreating(modelBuilder);
+}
+```
+
+---
+
+### Recreating the Migration
+1. **Remove the Previous Migration**:  
+   Since the previous migration had cascade delete behavior, remove it first:  
+   ```bash
+   remove-migration
+   ```
+
+2. **Add the Updated Migration**:  
+   Recreate the migration with the global restrict behavior:  
+   ```bash
+   add-migration AddQuestionsAndAnswersTables
+   ```
+
+   This will drop the existing foreign keys with cascade behavior and add new foreign keys with restrict behavior.
+
+3. **Update the Database**:  
+   Apply the migration to the database:  
+   ```bash
+   update-database
+   ```
+
+---
+
+### Summary
+- The **cascade delete** issue was resolved by globally setting the `OnDelete` behavior to `Restrict` in the `ApplicationDbContext`.
+- The migration was recreated to reflect this change, ensuring data integrity and preventing unwanted deletions.
+- The database was successfully updated with the new schema and restrict behavior for all foreign keys.
+
+
 
 
 
