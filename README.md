@@ -424,3 +424,114 @@ public class QuestionRequestValidator : AbstractValidator<QuestionRequest>
 - Validation rules include checks for content length, minimum number of answers, and duplicate answers.
 
 
+
+Here’s the Notes for the `QuestionErrors` class, `AnswerResponse` and `QuestionResponse` records, `IQuestionService` interface, and `QuestionService` implementation, organized :
+
+
+# QuestionErrors Class
+
+The `QuestionErrors` class defines custom error messages related to question operations:
+
+```csharp
+public static class QuestionErrors
+{
+    public static readonly Error QuestionNotFound =
+        new("Question.NotFound", "No question was found with the given ID");
+
+    public static readonly Error DuplicatedQuestionContent =
+        new("Question.DuplicatedContent", "Another question with the same content already exists");
+}
+```
+
+---
+
+# AnswerResponse and QuestionResponse Records
+
+### AnswerResponse Record
+The `AnswerResponse` record represents the response shape for an answer:
+
+```csharp
+public record AnswerResponse(int Id, string Content);
+```
+
+### QuestionResponse Record
+The `QuestionResponse` record represents the response shape for a question, including its answers:
+
+```csharp
+public record QuestionResponse(
+    int Id,
+    string Content,
+    IEnumerable<AnswerResponse> Answers
+);
+```
+
+---
+
+# Question Service
+
+### IQuestionService Interface
+The `IQuestionService` interface defines the contract for the question service, including the `AddAsync` method:
+
+```csharp
+public interface IQuestionService
+{
+    Task<Result<QuestionResponse>> AddAsync(int pollId, QuestionRequest request, CancellationToken cancellationToken = default);
+}
+```
+
+### QuestionService Implementation
+The `QuestionService` class implements the `IQuestionService` interface and handles the logic for adding a question:
+
+```csharp
+public class QuestionService(ApplicationDbContext context) : IQuestionService
+{
+    private readonly ApplicationDbContext _context = context;
+
+    public async Task<Result<QuestionResponse>> AddAsync(int pollId, QuestionRequest request, CancellationToken cancellationToken = default)
+    {
+        // Check if the poll exists with the given ID
+        var pollIsExists = await _context.Polls.AnyAsync(x => x.Id == pollId, cancellationToken: cancellationToken);
+        if (!pollIsExists)
+            return Result.Failure<QuestionResponse>(PollErrors.PollNotFound);
+
+        // Check if the question content already exists in the poll
+        var questionIsExists = await _context.Questions.AnyAsync(x => x.Content == request.Content && x.PollId == pollId, cancellationToken: cancellationToken);
+        if (questionIsExists)
+            return Result.Failure<QuestionResponse>(QuestionErrors.DuplicatedQuestionContent);
+
+        // Adapt the request to the Question domain model
+        var question = request.Adapt<Question>();
+        question.PollId = pollId;
+
+        // Add answers to the question
+        request.Answers.ForEach(answer => question.Answers.Add(new Answer { Content = answer }));
+
+        // Save the question to the database
+        await _context.AddAsync(question, cancellationToken);
+        await _context.SaveChangesAsync(cancellationToken);
+
+        // Return the success response
+        return Result.Success(question.Adapt<QuestionResponse>());
+    }
+}
+```
+
+---
+
+### Service Registration
+To register the `QuestionService` in the dependency injection container, add the following line to your `Startup.cs` or `Program.cs`:
+
+```csharp
+services.AddScoped<IQuestionService, QuestionService>();
+```
+
+---
+
+### Summary
+- The `QuestionErrors` class defines custom errors for question operations.  
+- The `AnswerResponse` and `QuestionResponse` records define the response shapes for answers and questions.  
+- The `IQuestionService` interface and `QuestionService` class handle the logic for adding a question, including validation and database operations.  
+- The service is registered in the dependency injection container for use throughout the application.
+
+
+
