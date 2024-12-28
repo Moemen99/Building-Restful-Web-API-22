@@ -355,3 +355,72 @@ protected override void OnModelCreating(ModelBuilder modelBuilder)
 
 
 
+Here’s the complete content for the `QuestionRequest` record and its validator:
+
+
+# QuestionRequest and Validator
+
+The `QuestionRequest` record and its validator are used to define the structure and validation rules for creating or updating a question. Below is the implementation:
+
+---
+
+## QuestionRequest Record
+
+The `QuestionRequest` record contains the content of the question and a list of answers allowed for the question:
+
+```csharp
+public record QuestionRequest(string Content, List<string> Answers);
+```
+
+### Properties:
+1. **`Content`**:  
+   - Represents the content of the question.  
+2. **`Answers`**:  
+   - Represents the list of answers allowed for the question.
+
+---
+
+## QuestionRequestValidator
+
+The `QuestionRequestValidator` class defines the validation rules for the `QuestionRequest` record. It inherits from `AbstractValidator<QuestionRequest>` and implements the following rules:
+
+```csharp
+public class QuestionRequestValidator : AbstractValidator<QuestionRequest>
+{
+    public QuestionRequestValidator()
+    {
+        // Rule for Content: Must not be empty and have a length between 3 and 1000 characters
+        RuleFor(x => x.Content)
+            .NotEmpty()
+            .Length(3, 1000);
+
+        // Rule for Answers: Must have at least 2 answers
+        RuleFor(x => x.Answers)
+            .Must(x => x.Count > 1)
+            .WithMessage("Question should have at least 2 answers");
+
+        // Rule for Answers: Must not have duplicate answers
+        RuleFor(x => x.Answers)
+            .Must(x => x.Distinct().Count() == x.Count)
+            .WithMessage("You cannot add duplicated answers for the same question");
+    }
+}
+```
+
+### Validation Rules:
+1. **Content Validation**:  
+   - The `Content` must not be empty.  
+   - The `Content` length must be between 3 and 1000 characters.
+
+2. **Answers Validation**:  
+   - The `Answers` list must contain at least 2 answers.  
+   - The `Answers` list must not contain duplicate values.
+
+---
+
+### Summary
+- The `QuestionRequest` record defines the structure for creating or updating a question.  
+- The `QuestionRequestValidator` ensures that the `QuestionRequest` data meets the required validation rules.  
+- Validation rules include checks for content length, minimum number of answers, and duplicate answers.
+
+
