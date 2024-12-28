@@ -26,7 +26,7 @@ public sealed class Question : AuditableEntity
 }
 
 
-
+```
 
 # Question Entity Class
 
