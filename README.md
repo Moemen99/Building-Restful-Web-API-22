@@ -25,9 +25,9 @@ public sealed class Question : AuditableEntity
     public ICollection<Answer> Answers { get; set; } = [];
 }
 
-Here’s the organized markdown (MD) format for your notes. Each line is annotated as per your instructions:
 
-```markdown
+
+
 # Question Entity Class
 
 The `Question` class represents the entity for questions in the application. It includes properties for the question's content, its relationship with a poll, and its set of answers. Below is the breakdown of the class and its properties:
